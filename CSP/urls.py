@@ -19,11 +19,14 @@ from django.conf.urls import url, include
 
 
 # Inlcude the schema view in our urls.
+from django.contrib import admin
+
 urlpatterns = [
-    url(r'', include('cstasker.urls'))
+    url(r'', include('cstasker.urls')),
+    url(r'^admin/', admin.site.urls),
 ]
 # urlpatterns = [
-#     url(r'^admin/', admin.site.urls),
+#
 #     url(r'^hello', tasker.hello),
 #     url(r'^user/create', tasker.create_user),
 # ]

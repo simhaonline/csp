@@ -11,6 +11,12 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import djcelery
+
+
+djcelery.setup_loader()
+BROKER_URL = 'django://'
+CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,6 +46,8 @@ INSTALLED_APPS = [
     'cstasker',
     'rest_framework',
     'rest_framework_swagger',
+    'djcelery',
+    'kombu.transport.django',
 ]
 
 REST_FRAMEWORK = {
@@ -95,13 +103,23 @@ WSGI_APPLICATION = 'CSP.wsgi.application'
 #         'PORT': '3306',
 #     }
 # }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'csdb_test',
+#         'USER': 'icing',
+#         'PASSWORD': '12924',
+#         'HOST': '120.27.44.159',
+#         'PORT': '3306',
+#     }
+# }
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'csdb',
-        'USER': 'icing',
-        'PASSWORD': '12924',
-        'HOST': '120.27.44.159',
+        'USER': 'root',
+        'PASSWORD': '0712',
+        'HOST': 'localhost',
         'PORT': '3306',
     }
 }
@@ -144,3 +162,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+
+MEDIA_ROOT = '/Users/wangfeng/PycharmProjects/CSP'
