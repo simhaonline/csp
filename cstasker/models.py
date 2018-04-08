@@ -53,6 +53,10 @@ class UserTask(models.Model):
         return '{}_{}_{}'.format(self.user, self.task, self.status)
 
 
+class Questionnaire(models.Model):
+    pass
+
+
 class Photo(models.Model):
     title = models.CharField(max_length=100)
     image = models.ImageField(upload_to='photos')
