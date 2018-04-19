@@ -11,18 +11,44 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.parsers import JSONParser
 
-from cstasker.models import Person, Photo
+from cstasker.models import Person, Photo, UserTask, UserProfile
 from cstasker.serialize import PersonSerializer
 from utils.auth import login_required
 from utils.http_response import *
 
 import cstasker.task as celery_task
+from djcelery.models import PeriodicTask, CrontabSchedule
 
 
-# @login_required
+@login_required
 def hello(request):
-    celery_task.hello.delay()
-    return HttpResponse('123')
+    # celery_task.hello.delay()
+    # schedule, _ = CrontabSchedule.objects.create(
+    #
+    # )
+    # PeriodicTask.objects.create(
+    #
+    # )
+    return HttpResponse('hello')
+
+
+def test(request):
+    # celery_task.gen_task_for_all()
+    celery_task.gen_task_for_all()
+    # celery_task.finish_user_task(2018041247574617)
+    return HttpResponse("test")
+
+
+@login_required
+def get_user_info(request):
+    user_profile = UserProfile.objects.filter(user=request.user).values()
+    if len(user_profile) > 0:
+        print(user_profile)
+        user_profile[0]['user_name'] = request.user.username
+        return JsonResponse(user_profile[0])
+        # return success(content=request.user.username)
+    else:
+        return runtime_error(content='用户不存在')
 
 
 @csrf_exempt
@@ -32,8 +58,10 @@ def user_login(request):
     user = authenticate(username=username, password=password)
     if user is not None:
         if user.is_active:
+            # print(user.id)
             login(request, user)
-            return success(content='login success')
+            return JsonResponse({'id': user.id, 'name': user.username})
+            # return success(content='login success')
             # Redirect to a success page.
         else:
             return runtime_error(content='disable account')
@@ -58,6 +86,8 @@ def create_user(request):
             return runtime_error(content='user name has been used')
         user = User.objects.create_user(username=username, password=password)
         user.save()
+        user_profile = UserProfile(user=user, score=0)
+        user_profile.save()
         return success(user.username)
         # data = JSONParser().parse(request)
         # person = PersonSerializer(data=data)
@@ -73,21 +103,3 @@ def get_all_user(request):
     return success(content=all_users[0].password)
 
 
-@login_required
-def user_get_task(request):
-    print(request.user)
-    return success(content=request.user.username)
-
-
-@csrf_exempt
-@login_required
-def user_finish_task(request):
-    print(request.user)
-    if 'image' in request.FILES:
-        image = request.FILES["image"]
-        title = request.POST.get('title', '')
-        photo = Photo(image=image, title=title)
-        photo.save()
-    else:
-        return runtime_error(content='image not found')
-    return success(content='任务成功提交')
