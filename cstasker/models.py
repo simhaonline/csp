@@ -165,3 +165,17 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+
+
+class Canteen(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.TextField(max_length=32, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class CanteenLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    canteen = models.ForeignKey(Canteen)
+    ip_count = models.IntegerField(null=True, blank=True)
