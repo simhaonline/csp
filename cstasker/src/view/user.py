@@ -14,6 +14,7 @@ from rest_framework.parsers import JSONParser
 from cstasker.models import Person, Photo, UserTask, UserProfile
 from cstasker.serialize import PersonSerializer
 from utils.auth import login_required
+from utils.utils import *
 from utils.http_response import *
 
 import cstasker.task as celery_task
@@ -34,8 +35,9 @@ def hello(request):
 
 def test(request):
     # celery_task.gen_task_for_all()
-    celery_task.gen_task_for_all()
-    # celery_task.finish_user_task(2018041247574617)
+    celery_task.gen_questionnaire_for_all()
+    # send_notification('您收到了新的任务')
+    # celery_task.finish_user_questionnaire(201805114114869)
     return HttpResponse("test")
 
 

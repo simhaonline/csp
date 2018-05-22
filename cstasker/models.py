@@ -42,6 +42,12 @@ TASK_STATUS = (
     (4, 'UnFinish'),
 )
 
+QUESTIONNAIRE_STATUS = (
+    (0, 'Published'),
+    (1, 'Finished'),
+    (2, 'Expired'),
+)
+
 
 class Record(models.Model):
     timestamp = models.IntegerField()
@@ -94,6 +100,15 @@ class PeriodicalRecord(models.Model):
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
     poi = models.TextField(max_length=255, null=True, blank=True)
+    net_info = models.IntegerField(blank=True, null=True)
+
+
+class BatteryRecord(models.Model):
+    id = models.AutoField(primary_key=True)
+    timestamp = models.IntegerField(blank=True, null=True)
+    user = models.ForeignKey(User)
+    level = models.FloatField(blank=True, null=True)
+    charge = models.IntegerField(blank=True, null=True)
 
 
 class Questionnaire(models.Model):
@@ -106,17 +121,38 @@ class Questionnaire(models.Model):
 
 class Question(models.Model):
     id = models.AutoField(primary_key=True)
-    qn_id = models.ForeignKey(Questionnaire, on_delete=models.CASCADE)
+    questionnaire = models.ForeignKey(Questionnaire, on_delete=models.CASCADE)
     description = models.TextField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.description
 
 
-class UserChoice(models.Model):
+class QuestionOption(models.Model):
     id = models.AutoField(primary_key=True)
     q_id = models.ForeignKey(Question, on_delete=models.CASCADE)
-    u_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return self.content
+
+
+class UserQuestionnaire(models.Model):
+    questionnaire = models.ForeignKey(Questionnaire, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    publish_time = models.DateTimeField(blank=True, null=True)
+    action_time = models.DateTimeField(blank=True, null=True)
+    start_time = models.DateTimeField(blank=True, null=True)
+    end_time = models.DateTimeField(blank=True, null=True)
+    status = models.IntegerField(choices=QUESTIONNAIRE_STATUS, null=True)
+    uq_id = models.BigIntegerField(primary_key=True)
+
+
+class UserChoice(models.Model):
+    id = models.AutoField(primary_key=True)
+    questionnaire = models.ForeignKey(Questionnaire, null=True, blank=True, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    uq = models.ForeignKey(UserQuestionnaire, on_delete=models.CASCADE, null=True, blank=True)
     user_choice = models.IntegerField(null=True, blank=True)
 
 

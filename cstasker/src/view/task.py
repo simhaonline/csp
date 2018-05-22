@@ -7,7 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from geopy.geocoders import Nominatim
 
 
-from cstasker.models import UserTask, Task, LockRecord, PeriodicalRecord, Photo
+from cstasker.models import UserTask, Task, LockRecord, PeriodicalRecord, Photo, UserQuestionnaire, Questionnaire, \
+    Question, UserChoice, BatteryRecord
 from utils.auth import login_required
 from utils.http_response import *
 
@@ -32,6 +33,15 @@ def get_task_list(request):
     return JsonResponse(tasks)
 
 
+@login_required
+def get_questionnaire_list(request):
+    user = request.user
+    ques = list(UserQuestionnaire.objects.filter(user=user, status=0).values())
+    for q in ques:
+        q['qn'] = Questionnaire.objects.filter(id=q['questionnaire_id']).values()[0]
+    return JsonResponse(ques)
+
+
 @csrf_exempt
 @login_required
 def get_task(request, task_id):
@@ -39,6 +49,20 @@ def get_task(request, task_id):
     task = list(UserTask.objects.filter(ut_id=int(task_id)).values())
     if len(task) > 0:
         return JsonResponse(task[0])
+    else:
+        return runtime_error("no such id")
+
+
+@csrf_exempt
+@login_required
+def get_questionnaire(request, uq_id):
+    user_questionnaire = list(UserQuestionnaire.objects.filter(uq_id=int(uq_id)).values())
+    if (len(user_questionnaire)) > 0:
+        uq = user_questionnaire[0]
+        questions = list(Question.objects.filter(questionnaire_id=uq['questionnaire_id']).values("description"))
+        uq['questions'] = questions
+        # print(questions)
+        return JsonResponse(uq)
     else:
         return runtime_error("no such id")
 
@@ -68,6 +92,25 @@ def user_finish_task(request):
 
 @csrf_exempt
 @login_required
+def user_finish_questionnaire(request):
+    option = int(request.POST.get('option', -1))
+    uq_id = int(request.POST.get('uqId', -1))
+    if option >= 0 and uq_id >= 0:
+        uq = UserQuestionnaire.objects.filter(uq_id=uq_id)
+        if len(uq) > 0:
+            uq[0].status = 1
+            uq[0].save()
+            # print(uq[0].questionnaire)
+            choice = UserChoice(questionnaire=uq[0].questionnaire, user=uq[0].user, uq=uq[0])
+            choice.save()
+            return success(content='问卷成功提交')
+        return runtime_error(content='没有相应的任务')
+    else:
+        return runtime_error(content='问卷反馈失败')
+
+
+@csrf_exempt
+@login_required
 def user_modify_task_status(request):
     status = int(request.POST.get('status', -1))
     task_id = int(request.POST.get('taskId', -1))
@@ -91,13 +134,18 @@ def user_modify_task_status(request):
 @csrf_exempt
 @login_required
 def handle_periodical_record(request):
-    latitude = int(request.POST.get('latitude', 0))
-    longitude = int(request.POST.get('longitude', 0))
+    latitude = float(request.POST.get('latitude', 0))
+    longitude = float(request.POST.get('longitude', 0))
+    level = float(request.POST.get('level', -1))
+    charging = int(request.POST.get('charging', -1))
+    net_info = int(request.POST.get('netInfo', -1))
     location = ''
     if longitude != 0 and latitude != 0:
         geolocator = Nominatim()
         location = geolocator.reverse("{},{}".format(latitude, longitude)).address
+    b_record = BatteryRecord(timestamp=int(time.time()), user=request.user, level=level, charge=charging)
+    b_record.save()
     record = PeriodicalRecord(timestamp=int(time.time()), user=request.user, latitude=latitude,
-                              longitude=longitude, poi=location)
+                              longitude=longitude, poi=location, net_info=net_info)
     record.save()
     return success()

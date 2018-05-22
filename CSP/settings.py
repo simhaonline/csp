@@ -36,6 +36,9 @@ ALLOWED_HOSTS = [
     '10.0.30.164',
     '192.168.255.14',
     'localhost',
+    'www.sudowind.com',
+    '120.27.44.159',
+    '59.110.139.184',
 ]
 
 
@@ -108,26 +111,26 @@ WSGI_APPLICATION = 'CSP.wsgi.application'
 #         'PORT': '3306',
 #     }
 # }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'csdb_test',
-#         'USER': 'icing',
-#         'PASSWORD': '12924',
-#         'HOST': '120.27.44.159',
-#         'PORT': '3306',
-#     }
-# }
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'csdb',
-        'USER': 'root',
-        'PASSWORD': '0712',
-        'HOST': 'localhost',
+        'USER': 'icing',
+        'PASSWORD': '12924',
+        'HOST': '120.27.44.159',
         'PORT': '3306',
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'csdb',
+#         'USER': 'root',
+#         'PASSWORD': '0712',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#     }
+# }
 
 
 # Password validation
@@ -154,6 +157,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
+# TIME_ZONE = 'America/Tijuana'
 TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
