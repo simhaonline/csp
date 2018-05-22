@@ -1,4 +1,8 @@
+import json
 import random
+import re
+import requests
+import time
 
 from celery import shared_task
 from celery.task import periodic_task
@@ -116,6 +120,22 @@ def finish_user_questionnaire(uq_id):
         uq[0].status = 2
         uq[0].save()
 
+
+@shared_task
+def get_canteen_data():
+    r = requests.get('http://162.105.127.2:81/canteen/dat/hotpoints_canteen.dat')
+
+    text = re.sub(r'[\n ]', '', r.text)
+    group = re.search(r'(\[.+\])', text)
+    res = group.groups(0)[0]
+    res = re.sub(r'\'', '"', res)
+
+    if res[-2] == ',':
+        res = res[:-2] + res[-1]
+
+    obj = json.loads(res)
+    print(obj)
+    print(int(time.time()))
 
 # @periodic_task(run_every=timedelta(seconds=10))
 # def some_task():
