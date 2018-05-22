@@ -2,3 +2,4 @@
 *.sqlite3
 *.pyc
 photos/
+CSP/settings.py
