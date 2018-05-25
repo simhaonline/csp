@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from datetime import datetime, timedelta
 from djcelery.models import PeriodicTask, CrontabSchedule
 
-from cstasker.models import Task, UserTask, UserQuestionnaire, Questionnaire
+from cstasker.models import Task, UserTask, UserQuestionnaire, Questionnaire, PeriodicalRecord
 from utils.auth import login_required
 from utils.utils import gen_ut_id, send_notification
 
@@ -88,8 +88,21 @@ def gen_task_for_all():
     task = Task.objects.all()
     users = User.objects.all()
     for u in users:
-        index = random.randint(0, len(task) - 1)
-        gen_task(u, task[index])
+        records = list(PeriodicalRecord.objects.filter(user=u).order_by('-timestamp').values('latitude', 'longitude'))
+        if len(records) > 0:
+            nearest_r = records[0]
+            task_candidates = []
+            for t in task:
+                if t.latitude and t.longtitude:
+                    dist = abs(t.latitude - nearest_r['latitude']) + abs(t.longitude - nearest_r['longitude'])
+                    if dist < 0.005:
+                        task_candidates.append(t)
+            if len(task_candidates) > 0:
+                index = random.randint(0, len(task_candidates) - 1)
+                gen_task(u, task_candidates[index])
+            else:
+                index = random.randint(0, len(task) - 1)
+                gen_task(u, task[index])
     send_notification("新的任务")
 
 

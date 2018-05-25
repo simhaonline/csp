@@ -29,6 +29,8 @@ class Task(models.Model):
     title = models.CharField(max_length=60)
     content = models.TextField()
     extra_data = models.TextField(blank=True)
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
 
     def __str__(self):
         return self.title
@@ -63,6 +65,7 @@ class UserTask(models.Model):
     end_time = models.DateTimeField(blank=True, null=True)
     status = models.IntegerField(choices=TASK_STATUS, null=True)
     ut_id = models.BigIntegerField(primary_key=True)
+    timestamp = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return '{}_{}_{}'.format(self.user, self.task, self.status)
