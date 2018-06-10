@@ -19,11 +19,12 @@ from django.utils import timezone
 
 def gen_task(user, task):
     ut_id = gen_ut_id()
+    now = int(time.time())
     publish_time = datetime.now()
     # end_time = publish_time + timedelta(seconds=10)
-    end_time = publish_time + timedelta(hours=5)
-    user_task = UserTask(task=task, user=user, status=0, publish_time=publish_time, end_time=end_time,
-                         ut_id=ut_id)
+    end_time = publish_time + timedelta(hours=2)
+    user_task = UserTask(task=task, user=user, status=2, publish_time=publish_time, end_time=end_time,
+                         ut_id=ut_id, publish_timestamp=now, end_timestamp=now + 3600 * 2)
     user_task.save()
     schedule = CrontabSchedule.objects.create(
         minute=end_time.minute + 1,
@@ -40,12 +41,14 @@ def gen_task(user, task):
 
 def gen_questionnaire(user, questionnaire):
     uq_id = gen_ut_id()
+    now = int(time.time())
     publish_time = datetime.now()
     # publish_time = timezone.now()
     end_time = publish_time + timedelta(hours=5)
     # end_time = publish_time + timedelta(days=1)
     user_questionnaire = UserQuestionnaire(questionnaire=questionnaire, user=user, status=0,
-                                           publish_time=publish_time, end_time=end_time, uq_id=uq_id)
+                                           publish_time=publish_time, end_time=end_time, uq_id=uq_id,
+                                           publish_timestamp=now, end_timestamp=now + 3600 * 5)
     user_questionnaire.save()
     schedule = CrontabSchedule.objects.create(
         minute=end_time.minute + 1,
@@ -85,30 +88,75 @@ def gen_task_for_user(user):
 
 @shared_task
 def gen_task_for_all():
-    task = Task.objects.all()
+    """
+    发放time sensitive 的任务，拍食堂
+    :return:
+    """
+    task = Task.objects.filter(type=1)
     users = User.objects.all()
     for u in users:
         records = list(PeriodicalRecord.objects.filter(user=u).order_by('-timestamp').values('latitude', 'longitude'))
         if len(records) > 0:
             nearest_r = records[0]
             task_candidates = []
+            all_task_candidates = []
             for t in task:
-                if t.latitude and t.longtitude:
+                if t.latitude and t.longitude:
                     dist = abs(t.latitude - nearest_r['latitude']) + abs(t.longitude - nearest_r['longitude'])
                     if dist < 0.005:
-                        task_candidates.append(t)
+                        task_candidates.append((t, dist))
+                    if dist < 0.01:
+                        all_task_candidates.append((t, dist))
+            all_task_candidates = sorted(all_task_candidates, key=lambda x: x[1], reverse=False)
             if len(task_candidates) > 0:
                 index = random.randint(0, len(task_candidates) - 1)
-                gen_task(u, task_candidates[index])
-            else:
-                index = random.randint(0, len(task) - 1)
-                gen_task(u, task[index])
+                gen_task(u, task_candidates[index][0])
+            elif len(all_task_candidates) > 0:
+                index = random.randint(0, len(all_task_candidates[:5]) - 1)
+                gen_task(u, all_task_candidates[:5][index][0])
+            # else:
+            #     index = random.randint(0, len(task) - 1)
+            #     gen_task(u, task[index])
+    send_notification("新的任务")
+
+
+@shared_task
+def gen_location_based_task_for_all():
+    """
+    发放location based 任务，拍小黄车
+    :return:
+    """
+    task = Task.objects.filter(type=0)
+    users = User.objects.all()
+    for u in users:
+        records = list(PeriodicalRecord.objects.filter(user=u).order_by('-timestamp').values('latitude', 'longitude'))
+        if len(records) > 0:
+            nearest_r = records[0]
+            task_candidates = []
+            all_task_candidates = []
+            for t in task:
+                if t.latitude and t.longitude:
+                    dist = abs(t.latitude - nearest_r['latitude']) + abs(t.longitude - nearest_r['longitude'])
+                    if dist < 0.005:
+                        task_candidates.append((t, dist))
+                    if dist < 0.01:
+                        all_task_candidates.append((t, dist))
+            all_task_candidates = sorted(all_task_candidates, key=lambda x: x[1], reverse=False)
+            if len(task_candidates) > 0:
+                index = random.randint(0, len(task_candidates) - 1)
+                gen_task(u, task_candidates[index][0])
+            elif len(all_task_candidates) > 0:
+                index = random.randint(0, len(all_task_candidates[:5]) - 1)
+                gen_task(u, all_task_candidates[:5][index][0])
+            # else:
+            #     index = random.randint(0, len(task) - 1)
+            #     gen_task(u, task[index])
     send_notification("新的任务")
 
 
 @shared_task
 def gen_questionnaire_for_all():
-    questionnaire = Questionnaire.objects.all()
+    questionnaire = Questionnaire.objects.filter(id=3)
     print(questionnaire)
     users = User.objects.all()
     for u in users:

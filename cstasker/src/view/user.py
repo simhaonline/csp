@@ -47,6 +47,8 @@ def get_user_info(request):
     if len(user_profile) > 0:
         print(user_profile)
         user_profile[0]['user_name'] = request.user.username
+        user_task = UserTask.objects.filter(user=request.user, status=3).values()
+        user_profile[0]['finish_count'] = len(user_task)
         return JsonResponse(user_profile[0])
         # return success(content=request.user.username)
     else:

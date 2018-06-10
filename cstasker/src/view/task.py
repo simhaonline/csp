@@ -8,7 +8,7 @@ from geopy.geocoders import Nominatim
 
 
 from cstasker.models import UserTask, Task, LockRecord, PeriodicalRecord, Photo, UserQuestionnaire, Questionnaire, \
-    Question, UserChoice, BatteryRecord
+    Question, UserChoice, BatteryRecord, VoiceRecord, MovingRecord, AccRecord, AppUsageLog, BluetoothLog
 from utils.auth import login_required
 from utils.http_response import *
 
@@ -59,7 +59,8 @@ def get_questionnaire(request, uq_id):
     user_questionnaire = list(UserQuestionnaire.objects.filter(uq_id=int(uq_id)).values())
     if (len(user_questionnaire)) > 0:
         uq = user_questionnaire[0]
-        questions = list(Question.objects.filter(questionnaire_id=uq['questionnaire_id']).values("description"))
+        questions = list(Question.objects.filter(questionnaire_id=uq['questionnaire_id']).values("sort_key", "description"))
+        questions = sorted(questions, key=lambda x: x['sort_key'], reverse=False)
         uq['questions'] = questions
         # print(questions)
         return JsonResponse(uq)
@@ -78,30 +79,70 @@ def handle_lock_record(request):
 
 @csrf_exempt
 @login_required
+def handle_voice_data(request):
+    score = request.POST.get('score')
+    if score:
+        voice_record = VoiceRecord(timestamp=int(time.time()), score=score, user=request.user)
+        voice_record.save()
+        return success()
+    else:
+        return runtime_error("no parameter score")
+
+
+@csrf_exempt
+@login_required
+def handle_acc_data(request):
+    ax = request.POST.get('ax')
+    ay = request.POST.get('ay')
+    az = request.POST.get('az')
+    if ax and ay and az:
+        record = AccRecord(user=request.user, timestamp=int(time.time()), ax=ax, ay=ay, az=az)
+        record.save()
+        return success()
+    else:
+        return runtime_error("parameter error")
+
+
+@csrf_exempt
+@login_required
 def user_finish_task(request):
-    print(request.user)
     if 'image' in request.FILES:
         image = request.FILES["image"]
         title = request.POST.get('title', '')
         photo = Photo(image=image, title=title)
         photo.save()
+        latitude = request.POST.get('latitude', 0)
+        longitude = request.POST.get('longitude', 0)
+        task_id = int(request.POST.get('taskId', -1))
+        task = UserTask.objects.filter(ut_id=task_id, user=request.user)
+        if len(task) > 0:
+            task[0].status = 3
+            task[0].latitude = latitude
+            task[0].longitude = longitude
+            task[0].action_timestamp = int(time.time())
+            task[0].photo = photo
+            task[0].save()
+            print(task[0].status)
+            return success(content='任务成功提交')
+        else:
+            return runtime_error(content='no such user-task')
     else:
         return runtime_error(content='image not found')
-    return success(content='任务成功提交')
 
 
 @csrf_exempt
 @login_required
 def user_finish_questionnaire(request):
-    option = int(request.POST.get('option', -1))
+    option = request.POST.get('option', -1)
     uq_id = int(request.POST.get('uqId', -1))
-    if option >= 0 and uq_id >= 0:
+    if option and uq_id >= 0:
         uq = UserQuestionnaire.objects.filter(uq_id=uq_id)
         if len(uq) > 0:
             uq[0].status = 1
+            uq[0].action_timestamp = int(time.time())
             uq[0].save()
             # print(uq[0].questionnaire)
-            choice = UserChoice(questionnaire=uq[0].questionnaire, user=uq[0].user, uq=uq[0])
+            choice = UserChoice(questionnaire=uq[0].questionnaire, user=uq[0].user, uq=uq[0], choices=option)
             choice.save()
             return success(content='问卷成功提交')
         return runtime_error(content='没有相应的任务')
@@ -120,11 +161,14 @@ def user_modify_task_status(request):
             if status is 5:
                 if task[0].status is 2:
                     task[0].status = status
+                    task[0].action_timestamp = int(time.time())
                     task[0].save()
                     return success("状态修改成功")
                 else:
                     return runtime_error("状态不合法")
             else:
+                if status is 2:
+                    task[0].start_timestamp = int(time.time())
                 task[0].status = status
                 task[0].save()
                 return success("状态修改成功")
@@ -149,3 +193,29 @@ def handle_periodical_record(request):
                               longitude=longitude, poi=location, net_info=net_info)
     record.save()
     return success()
+
+
+@csrf_exempt
+@login_required
+def handle_app_log(request):
+    user = request.user
+    log = request.POST.get('log')
+    if log:
+        record = AppUsageLog(user=user, log=log, timestamp=int(time.time()))
+        record.save()
+        return success()
+    else:
+        return runtime_error('no log available')
+
+
+@csrf_exempt
+@login_required
+def handle_bluetooth_log(request):
+    user = request.user
+    count = int(request.POST.get('count', 0))
+    if count:
+        record = BluetoothLog(user=user, timestamp=int(time.time()), scan_count=count)
+        record.save()
+        return success()
+    else:
+        return runtime_error('invalid count')

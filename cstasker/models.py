@@ -13,6 +13,7 @@ class Person(models.Model):
 
 TASK_TYPE = (
     (0, 'LocationBased'),
+    (1, 'TimeSensitive'),
 )
 
 
@@ -56,19 +57,11 @@ class Record(models.Model):
     user = models.ForeignKey(User)
 
 
-class UserTask(models.Model):
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    publish_time = models.DateTimeField(blank=True, null=True)
-    action_time = models.DateTimeField(blank=True, null=True)
-    start_time = models.DateTimeField(blank=True, null=True)
-    end_time = models.DateTimeField(blank=True, null=True)
-    status = models.IntegerField(choices=TASK_STATUS, null=True)
-    ut_id = models.BigIntegerField(primary_key=True)
+class VoiceRecord(models.Model):
+    id = models.AutoField(primary_key=True)
     timestamp = models.IntegerField(blank=True, null=True)
-
-    def __str__(self):
-        return '{}_{}_{}'.format(self.user, self.task, self.status)
+    user = models.ForeignKey(User)
+    score = models.FloatField(blank=True, null=True)
 
 
 class Photo(models.Model):
@@ -79,6 +72,28 @@ class Photo(models.Model):
         return self.title
 
 
+class UserTask(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    publish_time = models.DateTimeField(blank=True, null=True)
+    action_time = models.DateTimeField(blank=True, null=True)
+    start_time = models.DateTimeField(blank=True, null=True)
+    end_time = models.DateTimeField(blank=True, null=True)
+    publish_timestamp = models.IntegerField(blank=True, null=True)
+    action_timestamp = models.IntegerField(blank=True, null=True)
+    start_timestamp = models.IntegerField(blank=True, null=True)
+    end_timestamp = models.IntegerField(blank=True, null=True)
+    status = models.IntegerField(choices=TASK_STATUS, null=True)
+    ut_id = models.BigIntegerField(primary_key=True)
+    timestamp = models.IntegerField(blank=True, null=True)
+    photo = models.ForeignKey(Photo, blank=True, null=True)
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
+
+    def __str__(self):
+        return '{}_{}_{}'.format(self.user, self.task, self.status)
+
+
 class GPSRecord(Record):
     latitude = models.FloatField()
     longitude = models.FloatField()
@@ -86,7 +101,16 @@ class GPSRecord(Record):
 
 
 class MovingRecord(Record):
-    speed = models.FloatField()
+    speed = models.FloatField(null=True, blank=True)
+
+
+class AccRecord(models.Model):
+    id = models.AutoField(primary_key=True)
+    ax = models.FloatField(null=True, blank=True)
+    ay = models.FloatField(null=True, blank=True)
+    az = models.FloatField(null=True, blank=True)
+    user = models.ForeignKey(User)
+    timestamp = models.IntegerField(null=True, blank=True)
 
 
 class LockRecord(models.Model):
@@ -126,6 +150,7 @@ class Question(models.Model):
     id = models.AutoField(primary_key=True)
     questionnaire = models.ForeignKey(Questionnaire, on_delete=models.CASCADE)
     description = models.TextField(max_length=255, null=True, blank=True)
+    sort_key = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.description
@@ -147,6 +172,10 @@ class UserQuestionnaire(models.Model):
     action_time = models.DateTimeField(blank=True, null=True)
     start_time = models.DateTimeField(blank=True, null=True)
     end_time = models.DateTimeField(blank=True, null=True)
+    publish_timestamp = models.IntegerField(blank=True, null=True)
+    action_timestamp = models.IntegerField(blank=True, null=True)
+    start_timestamp = models.IntegerField(blank=True, null=True)
+    end_timestamp = models.IntegerField(blank=True, null=True)
     status = models.IntegerField(choices=QUESTIONNAIRE_STATUS, null=True)
     uq_id = models.BigIntegerField(primary_key=True)
 
@@ -157,6 +186,7 @@ class UserChoice(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     uq = models.ForeignKey(UserQuestionnaire, on_delete=models.CASCADE, null=True, blank=True)
     user_choice = models.IntegerField(null=True, blank=True)
+    choices = models.TextField(max_length=128, null=True, blank=True)
 
 
 class UserProfile(models.Model):
@@ -182,3 +212,17 @@ class CanteenLog(models.Model):
     id = models.AutoField(primary_key=True)
     canteen = models.ForeignKey(Canteen)
     ip_count = models.IntegerField(null=True, blank=True)
+
+
+class AppUsageLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    log = models.TextField(max_length=255)
+    timestamp = models.IntegerField(null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+class BluetoothLog(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    timestamp = models.IntegerField(null=True, blank=True)
+    scan_count = models.IntegerField(null=True, blank=True)
